@@ -23,7 +23,7 @@ const SUSPICIOUS_TLDS = ["xyz", "top", "site", "online", "buzz", "info"];
 
 // ---------------- HELPERS ----------------
 
-// ✅ Correct root domain extractor
+// Extract root domain
 function extractRootDomain(url) {
   try {
     const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
@@ -34,13 +34,13 @@ function extractRootDomain(url) {
   }
 }
 
-// ✅ Domain age in days
+// Domain age in days
 function getDomainAge(date) {
   if (!date) return 0;
   return Math.floor((Date.now() - new Date(date)) / (1000 * 60 * 60 * 24));
 }
 
-// ✅ SSL check
+// SSL check
 function checkSSL(hostname) {
   return new Promise((resolve) => {
     const socket = tls.connect(
@@ -57,31 +57,34 @@ function checkSSL(hostname) {
   });
 }
 
-// 🔥 Random / fake domain detection
+// Fake / random domain detection
 function domainQualityPenalty(domain) {
   let penalty = 0;
-
-  if (/\d/.test(domain)) penalty += 20;          // numbers in domain
-  if (!/[aeiou]/i.test(domain)) penalty += 15;  // no vowels
-  if (domain.length < 6) penalty += 15;          // very short
+  if (/\d/.test(domain)) penalty += 20;
+  if (!/[aeiou]/i.test(domain)) penalty += 15;
+  if (domain.length < 6) penalty += 15;
   if (/job|career|hiring/i.test(domain)) penalty += 10;
-
   return penalty;
 }
 
-// 🔥 Brand impersonation
+// Brand impersonation check
 function isBrandImpersonation(domain) {
   return TRUSTED_DOMAINS.some(
     trusted =>
-      domain.includes(trusted.replace(".com", "")) &&
-      domain !== trusted
+      domain.includes(trusted.replace(".com", "")) && domain !== trusted
   );
 }
+
+// ---------------- HEALTH CHECK ----------------
+app.get("/health", (req, res) => {
+  res.json({ status: "Backend OK" });
+});
 
 // ---------------- LINK ANALYSIS ----------------
 app.post("/analyze-link", async (req, res) => {
   try {
     const rawUrl = req.body.url;
+
     if (!rawUrl || !rawUrl.startsWith("http")) {
       return res.json({
         trust_score: 10,
@@ -96,7 +99,7 @@ app.post("/analyze-link", async (req, res) => {
     let score = 50;
     const reasons = [];
 
-    // WHOIS + Domain Age
+    // WHOIS
     try {
       const whoisData = await whois(rootDomain);
       const created =
@@ -151,14 +154,14 @@ app.post("/analyze-link", async (req, res) => {
       reasons.push("Brand impersonation detected");
     }
 
-    // Suspicious TLD
+    // TLD check
     const tld = rootDomain.split(".").pop();
     if (SUSPICIOUS_TLDS.includes(tld)) {
       score -= 20;
       reasons.push("Suspicious top‑level domain");
     }
 
-    // Trusted domain bonus (small)
+    // Trusted domain bonus
     if (TRUSTED_DOMAINS.includes(rootDomain)) {
       score += 15;
       reasons.push("Known trusted job platform");
@@ -186,7 +189,9 @@ app.post("/analyze-link", async (req, res) => {
   }
 });
 
-// ---------------- START ----------------
-app.listen(5000, () => {
-  console.log("✅ TrustLens backend running (FINAL FAKE‑SITE DETECTION)");
+// ---------------- START SERVER ----------------
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`✅ TrustLens backend running on port ${PORT}`);
 });
