@@ -2,7 +2,8 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 const resultDiv = document.getElementById("result");
 
 const BACKEND_URL =
-  "https://cuddly-robot-v65565p774qg2x695-5000.app.github.dev";
+  "https://trustlens-backend-lh2x.onrender.com
+";
 
 analyzeBtn.addEventListener("click", async () => {
   resultDiv.innerHTML = "⏳ Analyzing current page...";
